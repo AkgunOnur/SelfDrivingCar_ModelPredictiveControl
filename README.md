@@ -1,8 +1,8 @@
 # Model Predictive Control
 
 [//]: # (Image References)
-[image1]: ./example/1.png "Equations"
-[image2]: ./example/result.gif "Results"
+[image1]: ./examples/1.png "Equations"
+[image2]: ./examples/result.gif "Results"
 ![alt text][image2]
 
 ## Overview

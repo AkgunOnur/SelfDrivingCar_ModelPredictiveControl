@@ -6,8 +6,8 @@
 using CppAD::AD;
 
 // TODO: Set the timestep length and duration
-size_t N = 25;
-double dt = 0.05;
+size_t N = 10;
+double dt = 0.1;
 
 // This value assumes the model presented in the classroom is used.
 //
@@ -21,7 +21,7 @@ double dt = 0.05;
 // This is the length from front to CoG that has a similar radius.
 const double Lf = 2.67;
 
-double ref_v = 40;
+double ref_v = 70;
 
 size_t x_start = 0;
 size_t y_start = x_start + N;
@@ -53,13 +53,14 @@ class FG_eval {
 	  for (int t = 0; t < N; t++) {
 		  fg[0] += w_cte * CppAD::pow(vars[cte_start + t], 2);
 		  fg[0] += w_epsi * CppAD::pow(vars[epsi_start + t], 2);
-		  fg[0] += w_v * CppAD::pow(vars[v_start + t] - ref_v, 2);
+		  fg[0] += w_vel * CppAD::pow(vars[v_start + t] - ref_v, 2);
 	  }
 
 	  // Minimize the use of actuators.
 	  for (int t = 0; t < N - 1; t++) {
 		  fg[0] += w_delta * CppAD::pow(vars[delta_start + t], 2);
 		  fg[0] += w_a * CppAD::pow(vars[a_start + t], 2);
+		  fg[0] += w_delta_a * CppAD::pow(vars[delta_start + t] * vars[v_start + t], 2);
 	  }
 
 	  // Minimize the value gap between sequential actuations.
@@ -108,12 +109,12 @@ class FG_eval {
 		  AD<double> a0 = vars[a_start + t - 1];
 
 		  if (t > 1) {   // use previous actuations (to handle latency problem)
-			  a = vars[a_start + t - 2];
-			  delta = vars[delta_start + t - 2];
+			  a0 = vars[a_start + t - 2];
+			  delta0 = vars[delta_start + t - 2];
 		  }
 
-		  AD<double> f0 = coeffs[0] + coeffs[1] * x0;
-		  AD<double> psides0 = CppAD::atan(coeffs[1]);
+		  AD<double> f0 = coeffs[0] + coeffs[1] * x0 + coeffs[2] * CppAD::pow(x0, 2) + coeffs[3] * CppAD::pow(x0, 3);
+		  AD<double> psides0 = CppAD::atan(coeffs[1] + 2 * coeffs[2] * x0 + 3 * coeffs[3] * CppAD::pow(x0, 2));
 
 		  // Here's `x` to get you started.
 		  // The idea here is to constraint this value to be 0.
@@ -132,7 +133,7 @@ class FG_eval {
 		  fg[1 + cte_start + t] =
 			  cte1 - ((f0 - y0) + (v0 * CppAD::sin(epsi0) * dt));
 		  fg[1 + epsi_start + t] =
-			  epsi1 - ((psi0 - psides0) + v0 * delta0 / Lf * dt);
+			  epsi1 - ((psi0 - psides0) - v0 * delta0 / Lf * dt);
 	  }
   }
 };
@@ -266,14 +267,15 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   //
   // {...} is shorthand for creating a vector, so auto x1 = {1.0,2.0}
   // creates a 2 element double vector.
-  mpc_x = {};
-  mpc_y = {};
-  for (int i = 0; i < N; i++) {
-	  mpc_x.push_back(solution.x[x_start + i]);
-	  mpc_y.push_back(solution.x[y_start + i]);
-  }
   vector<double> result;
+
   result.push_back(solution.x[delta_start]);
   result.push_back(solution.x[a_start]);
+
+  for (int i = 0; i < N-1; i++) {
+	  result.push_back(solution.x[x_start + i + 1]);
+	  result.push_back(solution.x[y_start + i + 1]);
+  }
+
   return result;
 }

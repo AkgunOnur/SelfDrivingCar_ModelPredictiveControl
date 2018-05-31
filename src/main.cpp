@@ -107,7 +107,7 @@ int main() {
 			  double dx = ptsx[i] - px;
 			  double dy = ptsy[i] - py;
 			  waypoints_x.push_back(dx * cos(-psi) - dy * sin(-psi));
-			  waypoints_y.push_back(dx * cos(-psi) + dy * sin(-psi))
+			  waypoints_y.push_back(dx * sin(-psi) + dy * cos(-psi));
 		  }
 
 		  double* x_pos = &waypoints_x[0];
@@ -116,11 +116,11 @@ int main() {
 		  Eigen::Map<Eigen::VectorXd> y_points(y_pos, 6);
 
 		  auto coeffs = polyfit(x_points, y_points, 3);
-		  double cte = polyeval(coeffs, 0); 
-		  double epsi = -atan(coeffs[1]);  
+		  double cte = polyeval(coeffs, 0);
+		  double epsi = -atan(coeffs[1]);
 
 		  double steer_value = j[1]["steering_angle"];
-          double throttle_value = j[1]["throttle"];
+	          double throttle_value = j[1]["throttle"];
 
 		  Eigen::VectorXd state(6);
 		  state << 0, 0, 0, v, cte, epsi;
@@ -134,7 +134,7 @@ int main() {
           msgJson["steering_angle"] = steer_value/(deg2rad(25));
           msgJson["throttle"] = throttle_value;
 
-          //Display the MPC predicted trajectory 
+          //Display the MPC predicted trajectory
           vector<double> mpc_x_vals;
           vector<double> mpc_y_vals;
 
